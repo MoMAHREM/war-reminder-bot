@@ -4,6 +4,7 @@ import os
 
 TOKEN = os.environ["DISCORD_TOKEN"]
 VOICE_CHANNEL_ID = int(os.environ["VOICE_CHANNEL_ID"])
+GUILD_ID = 1513557989162876978
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -18,13 +19,17 @@ remaining_minutes = 0
 
 @bot.event
 async def on_ready():
-    guild = discord.Object(id=1513557989162876978)
+    try:
+        guild = discord.Object(id=GUILD_ID)
 
-    bot.tree.copy_global_to(guild=guild)
-    synced = await bot.tree.sync(guild=guild)
+        bot.tree.clear_commands(guild=guild)
+        synced = await bot.tree.sync(guild=guild)
 
-    print(f"✅ Bot online: {bot.user}")
-    print(f"Synced {len(synced)} commands")
+        print(f"✅ Bot online: {bot.user}")
+        print(f"✅ Synced {len(synced)} guild commands")
+
+    except Exception as e:
+        print(f"Sync Error: {e}")
 
 
 @tasks.loop(minutes=5)
@@ -43,7 +48,7 @@ async def war_reminder():
     vc = discord.utils.get(bot.voice_clients, guild=channel.guild)
 
     if not vc:
-        vc = await channel.connect()
+        await channel.connect()
 
     if remaining_minutes > 0:
         if channel.guild.system_channel:
@@ -74,11 +79,14 @@ async def warstart(interaction: discord.Interaction, minutes: int):
     )
 
 
-@bot.tree.command(name="warstop", description="إيقاف تنبيه الحرب")
+@bot.tree.command(name="warstop", description="إيقاف عداد الحرب")
 async def warstop(interaction: discord.Interaction):
     global war_active
     war_active = False
-    await interaction.response.send_message("⛔ تم إيقاف تنبيه الحرب")
+
+    await interaction.response.send_message(
+        "⛔ تم إيقاف تنبيه الحرب"
+    )
 
 
 @bot.tree.command(name="join", description="دخول الروم الصوتي")
@@ -89,7 +97,7 @@ async def join(interaction: discord.Interaction):
         await member.voice.channel.connect()
         await interaction.response.send_message("🎤 دخلت الروم الصوتي")
     else:
-        await interaction.response.send_message("❌ لازم تكون داخل روم صوتي")
+        await interaction.response.send_message("❌ ادخل روم صوتي الأول")
 
 
 @bot.tree.command(name="leave", description="الخروج من الروم الصوتي")
@@ -97,6 +105,5 @@ async def leave(interaction: discord.Interaction):
     if interaction.guild.voice_client:
         await interaction.guild.voice_client.disconnect()
         await interaction.response.send_message("👋 خرجت من الروم")
-
 
 bot.run(TOKEN)
